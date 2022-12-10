@@ -5,9 +5,14 @@ import PayItem from "../abis/PayItem.json";
 import Navbar from "./Navbar";
 import Main from "./Main";
 import Footer from "./Footer";
+import queryString from "query-string";
 
 import axios from "axios";
 import "./App.css";
+
+// function withParams(Component) {
+//   return (props) => <Component {...props} params={us} />;
+// }
 
 class App extends Component {
   async componentWillMount() {
@@ -22,7 +27,10 @@ class App extends Component {
     //   this.price = paymentDetails.price;
     //   console.log(this.state.merchant + " => price of the item=" + this.price);
     // });
-    this.price = 5000
+    const value = queryString.parse(window.document.location.search);
+    // console.log(this.props);
+    const price = value.price;
+    this.price = price;
   }
 
   async loadBlockchainData() {
@@ -77,6 +85,7 @@ class App extends Component {
   }
 
   payItem = async (tokenAmount, email, firstName, lastName) => {
+    let sentTime, confirmedTime;
     this.hasError = false;
     try {
       this.setState({ loading: true });
@@ -84,20 +93,19 @@ class App extends Component {
         .payItem(tokenAmount, this.state.merchant)
         .send({ from: this.state.account })
         .on("transactionHash", (hash) => {
-          window.alert(
-            "Transaction was done successfully. Check your email to see the payment receipt."
-          );
-          window.history.back();
+          const timeInstance = new Date();
+          sentTime = timeInstance.getTime();
+          console.log("Requested Time:", sentTime);
+          // window.location.reload();
         })
-        .on("error", (error) => {
-          let confirmation = window.confirm(
-            "You canceled the transaction. Want to make new transaction?"
+        .on("receipt", (receipt) => {
+          const timeInstance = new Date();
+          confirmedTime = timeInstance.getTime();
+          console.log("Receipt Recieved Time:", confirmedTime);
+          console.log(
+            "Time Gap(Transaction Processing Time):",
+            confirmedTime - sentTime
           );
-          if (confirmation) {
-            window.location.reload();
-          } else {
-            window.history.back();
-          }
         });
       this.setState({ loading: false });
     } catch (error) {
@@ -116,14 +124,14 @@ class App extends Component {
       firstName: firstName,
       lastName: lastName,
       customerAddress: this.state.account,
-    };
+    }}
 
-    axios({
-      method: "post",
-      url: "http://localhost:3001/receipient_details",
-      data: formData,
-    });
-  };
+  //   axios({
+  //     method: "post",
+  //     url: "http://localhost:3001/receipient_details",
+  //     data: formData,
+  //   });
+  // };
 
   constructor(props) {
     super(props);
@@ -134,7 +142,7 @@ class App extends Component {
       ethBalance: "0",
       tokenBalance: "0",
       loading: true,
-      merchant: "0x675c2Bd905E3ae190efEF15a65974336BA09FcB7",
+      merchant: "0x4BCb5D968183aDa8c78b7E3e2a3b72EB40351021"
     };
   }
 
@@ -142,7 +150,7 @@ class App extends Component {
     let content;
     if (this.state.loading) {
       content = (
-        <p id="loader" className="text-center" style={{height: "68vh"}}>
+        <p id="loader" className="text-center" style={{ height: "68vh" }}>
           Loading...
         </p>
       );
@@ -152,7 +160,7 @@ class App extends Component {
           ethBalance={this.state.ethBalance}
           tokenBalance={this.state.tokenBalance}
           payItem={this.payItem} //email and names should be sent to payItem as arguments and in the payItem sendFormData should be executed.
-          price = {this.price}
+          price={this.price}
         />
       );
     }
@@ -175,7 +183,7 @@ class App extends Component {
             </main>
           </div>
         </div>
-        <Footer/>
+        <Footer />
       </div>
     );
   }
